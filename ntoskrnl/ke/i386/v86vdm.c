@@ -465,6 +465,9 @@ KiVdmOpcodeINTnn(IN PKTRAP_FRAME TrapFrame,
         TrapFrame->SegCs = Interrupt;
     }
 
+    DPRINT1("KiVdmOpcodeINTnn: int %lu -- jumping to %lx:%lx\n",
+            Interrupt, TrapFrame->Eip, TrapFrame->SegCs);
+
     /* We're done */
     return TRUE;
 }
