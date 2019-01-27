@@ -102,7 +102,7 @@ KiVdmUnhandledOpcode(IN PKTRAP_FRAME TrapFrame,
     Eip = (TrapFrame->SegCs << 4) + TrapFrame->Eip;
     Eip += KiVdmGetInstructionSize(Flags) - 1;
 
-    DPRINT1("Unhandled VDM Opcode 0x%2x @ 0x%08x\n", *(PUCHAR)Eip, Eip);
+    DPRINT1("Unhandled VDM Opcode 0x%02x @ 0x%08x\n", *(PUCHAR)Eip, Eip);
 
     KiVdmDumpTrapFrame(TrapFrame);
     UNIMPLEMENTED_DBGBREAK();
@@ -467,6 +467,14 @@ KiVdmOpcodeINTnn(IN PKTRAP_FRAME TrapFrame,
 
     DPRINT1("KiVdmOpcodeINTnn: int %lu -- jumping to %lx:%lx\n",
             Interrupt, TrapFrame->Eip, TrapFrame->SegCs);
+
+    Eip = (TrapFrame->SegCs << 4) + TrapFrame->Eip;
+    DPRINT1("KiVdmOpcodeINTnn: %02x %02x %02x %02x %02x %02x %02x %02x\n"
+            "                  %02x %02x %02x %02x %02x %02x %02x %02x\n",
+            ((PUCHAR)Eip)[0], ((PUCHAR)Eip)[1], ((PUCHAR)Eip)[2], ((PUCHAR)Eip)[3],
+            ((PUCHAR)Eip)[4], ((PUCHAR)Eip)[5], ((PUCHAR)Eip)[6], ((PUCHAR)Eip)[7],
+            ((PUCHAR)Eip)[8], ((PUCHAR)Eip)[9], ((PUCHAR)Eip)[10], ((PUCHAR)Eip)[11],
+            ((PUCHAR)Eip)[12], ((PUCHAR)Eip)[13], ((PUCHAR)Eip)[14], ((PUCHAR)Eip)[15]);
 
     /* We're done */
     return TRUE;
