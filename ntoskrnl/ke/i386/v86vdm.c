@@ -104,6 +104,16 @@ KiVdmUnhandledOpcode(IN PKTRAP_FRAME TrapFrame,
 
     DPRINT1("Unhandled VDM Opcode 0x%02x @ 0x%08x\n", *(PUCHAR)Eip, Eip);
 
+    {
+        ULONG i;
+        ULONG Entry;
+        for (i = 0; i < 256; i++)
+        {
+            Entry = *(PULONG)(i * 4);
+            DPRINT1("IVT #%lu: %lx:%lx\n", i, Entry >> 16, Entry & 0xffff);
+        }
+    }
+
     KiVdmDumpTrapFrame(TrapFrame);
     UNIMPLEMENTED_DBGBREAK();
     return FALSE;
@@ -386,6 +396,16 @@ KiVdmOpcodeINTnn(IN PKTRAP_FRAME TrapFrame,
                  IN ULONG Flags)
 {
     ULONG Esp, V86EFlags, TrapEFlags, Eip, Interrupt, IvtEntry, SegCs;
+
+    {
+        ULONG i;
+        ULONG Entry;
+        for (i = 0; i < 32; i++)
+        {
+            Entry = *(PULONG)(i * 4);
+            DPRINT1("IVT #%lu: %lx:%lx\n", i, Entry >> 16, Entry & 0xffff);
+        }
+    }
 
     /* Read trap frame EFlags */
     TrapEFlags = TrapFrame->EFlags;
