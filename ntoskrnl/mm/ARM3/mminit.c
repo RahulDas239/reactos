@@ -2543,6 +2543,24 @@ MmArmInitSystem(IN ULONG Phase,
 
         /* Initialize the loaded module list */
         MiInitializeLoadedModuleList(LoaderBlock);
+
+        {
+            PMMPTE PointerPte, EndPte;
+            PointerPte = MiAddressToPte((PVOID)0x80000000);
+            EndPte = MiAddressToPte((PVOID)0x80001000);
+            while (PointerPte < EndPte)
+            {
+                PointerPte->u.Hard.Write = 0;
+                PointerPte++;
+            }
+            PointerPte = MiAddressToPte((PVOID)0x800A0000);
+            EndPte = MiAddressToPte((PVOID)0x80100000);
+            while (PointerPte < EndPte)
+            {
+                PointerPte->u.Hard.Write = 0;
+                PointerPte++;
+            }
+        }
     }
 
     //
