@@ -592,6 +592,11 @@ KiVdmHandleOpcode(IN PKTRAP_FRAME TrapFrame,
     Eip = (TrapFrame->SegCs << 4) + TrapFrame->Eip;
     Eip += KiVdmGetInstructionSize(Flags) - 1;
 
+    DPRINT1("KiVdmHandleOpcode: eip=%lx:%lx, instr %02x %02x %02x %02x %02x %02x %02x %02x\n",
+            TrapFrame->SegCs, TrapFrame->Eip,
+            ((PUCHAR)Eip)[0], ((PUCHAR)Eip)[1], ((PUCHAR)Eip)[2], ((PUCHAR)Eip)[3],
+            ((PUCHAR)Eip)[4], ((PUCHAR)Eip)[5], ((PUCHAR)Eip)[6], ((PUCHAR)Eip)[7]);
+
     /* Read the opcode entry */
     switch (*(PUCHAR)Eip)
     {
@@ -829,6 +834,9 @@ Ke386CallBios(IN ULONG Int,
     PKPROCESS Process = Thread->ApcState.Process;
     PVDM_PROCESS_OBJECTS VdmProcessObjects;
     USHORT OldOffset, OldBase;
+
+    DPRINT1("Ke386CallBios: int 0x%x, eax=%lx, ebx=%lx, ecx=%lx, edx=%lx, esi=%lx, edi=%lx\n",
+            Int, Context->Eax, Context->Ebx, Context->Ecx, Context->Edx, Context->Esi, Context->Edi);
 
     /* Start with a clean TEB */
     RtlZeroMemory(VdmTeb, sizeof(TEB));
