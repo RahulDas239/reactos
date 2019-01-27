@@ -385,7 +385,7 @@ FASTCALL
 KiVdmOpcodeINTnn(IN PKTRAP_FRAME TrapFrame,
                  IN ULONG Flags)
 {
-    ULONG Esp, V86EFlags, TrapEFlags, Eip, Interrupt;
+    ULONG Esp, V86EFlags, TrapEFlags, Eip, Interrupt, IvtEntry, SegCs;
 
     /* Read trap frame EFlags */
     TrapEFlags = TrapFrame->EFlags;
@@ -437,21 +437,21 @@ KiVdmOpcodeINTnn(IN PKTRAP_FRAME TrapFrame,
     Interrupt = *(PUCHAR)Eip;
 
     /* Read the EIP from its IVT entry */
-    Interrupt = *(PULONG)(Interrupt * 4);
-    TrapFrame->Eip = (USHORT)Interrupt;
+    IvtEntry = *(PULONG)(Interrupt * 4);
+    TrapFrame->Eip = IvtEntry & 0xFFFF;
 
     /* Now get the CS segment */
-    Interrupt = (USHORT)(Interrupt >> 16);
+    SegCs = IvtEntry >> 16;
 
     /* Check if the trap was not V8086 trap */
     if (!(TrapFrame->EFlags & EFLAGS_V86_MASK))
     {
         /* Was it a kernel CS? */
-        Interrupt |= RPL_MASK;
+        SegCs |= RPL_MASK;
         if (TrapFrame->SegCs == KGDT_R0_CODE)
         {
             /* Add the RPL mask */
-            TrapFrame->SegCs = Interrupt;
+            TrapFrame->SegCs = SegCs;
         }
         else
         {
@@ -462,19 +462,25 @@ KiVdmOpcodeINTnn(IN PKTRAP_FRAME TrapFrame,
     else
     {
         /* Set IVT CS */
-        TrapFrame->SegCs = Interrupt;
+        TrapFrame->SegCs = SegCs;
     }
 
-    DPRINT1("KiVdmOpcodeINTnn: int %lu -- jumping to %lx:%lx\n",
-            Interrupt, TrapFrame->Eip, TrapFrame->SegCs);
+    DPRINT1("KiVdmOpcodeINTnn: int %lu / IVT %lx -- jumping to %lx:%lx\n",
+            Interrupt, IvtEntry, TrapFrame->SegCs, TrapFrame->Eip);
 
     Eip = (TrapFrame->SegCs << 4) + TrapFrame->Eip;
-    DPRINT1("KiVdmOpcodeINTnn: %02x %02x %02x %02x %02x %02x %02x %02x\n"
-            "                  %02x %02x %02x %02x %02x %02x %02x %02x\n",
+    DbgPrint("KiVdmOpcodeINTnn: %02x %02x %02x %02x %02x %02x %02x %02x\n"
+             "                  %02x %02x %02x %02x %02x %02x %02x %02x\n"
+             "                  %02x %02x %02x %02x %02x %02x %02x %02x\n"
+             "                  %02x %02x %02x %02x %02x %02x %02x %02x\n",
             ((PUCHAR)Eip)[0], ((PUCHAR)Eip)[1], ((PUCHAR)Eip)[2], ((PUCHAR)Eip)[3],
             ((PUCHAR)Eip)[4], ((PUCHAR)Eip)[5], ((PUCHAR)Eip)[6], ((PUCHAR)Eip)[7],
             ((PUCHAR)Eip)[8], ((PUCHAR)Eip)[9], ((PUCHAR)Eip)[10], ((PUCHAR)Eip)[11],
-            ((PUCHAR)Eip)[12], ((PUCHAR)Eip)[13], ((PUCHAR)Eip)[14], ((PUCHAR)Eip)[15]);
+            ((PUCHAR)Eip)[12], ((PUCHAR)Eip)[13], ((PUCHAR)Eip)[14], ((PUCHAR)Eip)[15],
+            ((PUCHAR)Eip)[16], ((PUCHAR)Eip)[17], ((PUCHAR)Eip)[18], ((PUCHAR)Eip)[19],
+            ((PUCHAR)Eip)[20], ((PUCHAR)Eip)[21], ((PUCHAR)Eip)[22], ((PUCHAR)Eip)[23],
+            ((PUCHAR)Eip)[24], ((PUCHAR)Eip)[25], ((PUCHAR)Eip)[26], ((PUCHAR)Eip)[27],
+            ((PUCHAR)Eip)[28], ((PUCHAR)Eip)[29], ((PUCHAR)Eip)[30], ((PUCHAR)Eip)[31]);
 
     /* We're done */
     return TRUE;
