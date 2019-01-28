@@ -435,7 +435,26 @@ KiVdmOpcodeINTnn(IN PKTRAP_FRAME TrapFrame,
 
     /* Remove interrupt flag from V8086 EFlags */
     V86EFlags = *KiNtVdmState;
+    {
+    NTSTATUS Status;
+    ULONG OldProtection;
+    PVOID BaseAddress = 0;
+    ULONG ViewSize = PAGE_SIZE;
+    Status = ZwProtectVirtualMemory(NtCurrentProcess(),
+                                    &BaseAddress,
+                                    &ViewSize,
+                                    PAGE_READWRITE,
+                                    &OldProtection);
+    NT_ASSERT(NT_SUCCESS(Status));
+
     KiVdmClearVdmEFlags(EFLAGS_INTERRUPT_MASK);
+    Status = ZwProtectVirtualMemory(NtCurrentProcess(),
+                                    &BaseAddress,
+                                    &ViewSize,
+                                    PAGE_READONLY,
+                                    &OldProtection);
+    NT_ASSERT(NT_SUCCESS(Status));
+    }
 
     /* Keep only alignment and interrupt flag from the V8086 state */
     V86EFlags &= (EFLAGS_ALIGN_CHECK | EFLAGS_INTERRUPT_MASK);
@@ -631,7 +650,26 @@ KiVdmOpcodeCLI(IN PKTRAP_FRAME TrapFrame,
     ASSERT(KeI386VirtualIntExtensions == FALSE);
 
     /* Disable interrupts */
+    {
+    NTSTATUS Status;
+    ULONG OldProtection;
+    PVOID BaseAddress = 0;
+    ULONG ViewSize = PAGE_SIZE;
+    Status = ZwProtectVirtualMemory(NtCurrentProcess(),
+                                    &BaseAddress,
+                                    &ViewSize,
+                                    PAGE_READWRITE,
+                                    &OldProtection);
+    NT_ASSERT(NT_SUCCESS(Status));
+
     KiVdmClearVdmEFlags(EFLAGS_INTERRUPT_MASK);
+    Status = ZwProtectVirtualMemory(NtCurrentProcess(),
+                                    &BaseAddress,
+                                    &ViewSize,
+                                    PAGE_READONLY,
+                                    &OldProtection);
+    NT_ASSERT(NT_SUCCESS(Status));
+    }
 
     /* Skip instruction */
     TrapFrame->Eip += KiVdmGetInstructionSize(Flags);
