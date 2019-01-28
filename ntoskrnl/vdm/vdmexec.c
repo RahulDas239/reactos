@@ -215,6 +215,16 @@ VdmpStartExecution(VOID)
     }
     else
     {
+        NTSTATUS Status;
+        ULONG OldProtection;
+        PVOID BaseAddress = 0;
+        ULONG ViewSize = PAGE_SIZE;
+        Status = ZwProtectVirtualMemory(NtCurrentProcess(),
+                                        &BaseAddress,
+                                        &ViewSize,
+                                        PAGE_READWRITE,
+                                        &OldProtection);
+        NT_ASSERT(NT_SUCCESS(Status));
         /* Set interrupt state in the VDM State */
         if (VdmTib->VdmContext.EFlags & EFLAGS_INTERRUPT_MASK)
         {
@@ -226,6 +236,12 @@ VdmpStartExecution(VOID)
             /* Disable them */
             InterlockedAnd((PLONG)VdmState, ~EFLAGS_INTERRUPT_MASK);
         }
+        Status = ZwProtectVirtualMemory(NtCurrentProcess(),
+                                        &BaseAddress,
+                                        &ViewSize,
+                                        PAGE_READONLY,
+                                        &OldProtection);
+        NT_ASSERT(NT_SUCCESS(Status));
 
         /* Enable the interrupt flag */
         VdmTib->VdmContext.EFlags |= EFLAGS_INTERRUPT_MASK;
