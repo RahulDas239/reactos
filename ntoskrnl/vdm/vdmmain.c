@@ -159,6 +159,18 @@ VdmpInitialize(PVOID ControlData)
         DPRINT1("Couldn't unmap the section (%x)\n", Status);
         return Status;
     }
+    
+    {
+    ULONG OldProtection;
+    BaseAddress = 0;
+    ViewSize = PAGE_SIZE;
+    Status = ZwProtectVirtualMemory(NtCurrentProcess(),
+                                    &BaseAddress,
+                                    &ViewSize,
+                                    PAGE_READONLY,
+                                    &OldProtection);
+    NT_ASSERT(NT_SUCCESS(Status));
+    }
 
     return STATUS_SUCCESS;
 }

@@ -1366,6 +1366,21 @@ NotSListFault:
     {
         DPRINT1("VDM PAGE FAULT at %lx:%lx for address %lx\n",
                 TrapFrame->SegCs, TrapFrame->Eip, Cr2);
+        if (Cr2 >= 0x400 && Cr2 < 0x1000)
+        {
+            NTSTATUS Status;
+            ULONG OldProtection;
+            PVOID BaseAddress = 0;
+            ULONG ViewSize = PAGE_SIZE;
+            Status = ZwProtectVirtualMemory(NtCurrentProcess(),
+                                            &BaseAddress,
+                                            &ViewSize,
+                                            PAGE_READWRITE,
+                                            &OldProtection);
+            NT_ASSERT(NT_SUCCESS(Status));
+            NT_ASSERT(OldProtection == PAGE_READONLY);
+            KiEoiHelper(TrapFrame);
+        }
         if (VdmDispatchPageFault(TrapFrame))
         {
             /* Return and end VDM execution */

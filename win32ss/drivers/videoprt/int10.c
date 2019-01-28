@@ -134,6 +134,11 @@ IntInitializeVideoAddressSpace(VOID)
         DPRINT1("NtVdmControl failed (status %x)\n", Status);
         return Status;
     }
+    {
+    PHYSICAL_ADDRESS PhysicalAddress = MmGetPhysicalAddress((PVOID)1);
+    DPRINT1("Null page mapped to: %I64x\n",
+            PhysicalAddress.QuadPart - 1);
+    }
 #endif // _M_IX86
 
     /* Return success */

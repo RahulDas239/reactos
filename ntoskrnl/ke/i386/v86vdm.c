@@ -105,6 +105,11 @@ KiVdmUnhandledOpcode(IN PKTRAP_FRAME TrapFrame,
     DPRINT1("Unhandled VDM Opcode 0x%02x @ 0x%08x\n", *(PUCHAR)Eip, Eip);
 
     {
+    PHYSICAL_ADDRESS PhysicalAddress = MmGetPhysicalAddress((PVOID)1);
+    DPRINT1("Null page mapped to: %I64x\n",
+            PhysicalAddress.QuadPart - 1);
+    }
+    {
         ULONG i;
         ULONG Entry;
         for (i = 0; i < 256; i++)
@@ -378,9 +383,27 @@ KiVdmOpcodePOPF(IN PKTRAP_FRAME TrapFrame,
     if (TrapEFlags & EFLAGS_V86_MASK) Ki386AdjustEsp0(TrapFrame);
 
     /* Update the V8086 EFlags state */
+    {
+    NTSTATUS Status;
+    ULONG OldProtection;
+    PVOID BaseAddress = 0;
+    ULONG ViewSize = PAGE_SIZE;
+    Status = ZwProtectVirtualMemory(NtCurrentProcess(),
+                                    &BaseAddress,
+                                    &ViewSize,
+                                    PAGE_READWRITE,
+                                    &OldProtection);
+    NT_ASSERT(NT_SUCCESS(Status));
+
     KiVdmClearVdmEFlags(EFLAGS_ALIGN_CHECK | EFLAGS_NESTED_TASK | EFLAGS_INTERRUPT_MASK);
     KiVdmSetVdmEFlags(EFlags);
-
+    Status = ZwProtectVirtualMemory(NtCurrentProcess(),
+                                    &BaseAddress,
+                                    &ViewSize,
+                                    PAGE_READONLY,
+                                    &OldProtection);
+    NT_ASSERT(NT_SUCCESS(Status));
+    }
     /* FIXME: Check for VDM interrupts */
 
     /* Update EIP */
@@ -560,8 +583,27 @@ KiVdmOpcodeIRET(IN PKTRAP_FRAME TrapFrame,
     if (!(TrapEFlags & EFLAGS_V86_MASK)) Ki386AdjustEsp0(TrapFrame);
 
     /* Update the V8086 EFlags state */
+    {
+    NTSTATUS Status;
+    ULONG OldProtection;
+    PVOID BaseAddress = 0;
+    ULONG ViewSize = PAGE_SIZE;
+    Status = ZwProtectVirtualMemory(NtCurrentProcess(),
+                                    &BaseAddress,
+                                    &ViewSize,
+                                    PAGE_READWRITE,
+                                    &OldProtection);
+    NT_ASSERT(NT_SUCCESS(Status));
+
     KiVdmClearVdmEFlags(EFLAGS_INTERRUPT_MASK);
     KiVdmSetVdmEFlags(V86EFlags);
+    Status = ZwProtectVirtualMemory(NtCurrentProcess(),
+                                    &BaseAddress,
+                                    &ViewSize,
+                                    PAGE_READONLY,
+                                    &OldProtection);
+    NT_ASSERT(NT_SUCCESS(Status));
+    }
 
     /* Build flat EIP and check if this is the BOP instruction */
     Eip = (TrapFrame->SegCs << 4) + TrapFrame->Eip;
@@ -607,7 +649,26 @@ KiVdmOpcodeSTI(IN PKTRAP_FRAME TrapFrame,
     ASSERT(KeI386VirtualIntExtensions == FALSE);
 
     /* Enable interrupts */
+    {
+    NTSTATUS Status;
+    ULONG OldProtection;
+    PVOID BaseAddress = 0;
+    ULONG ViewSize = PAGE_SIZE;
+    Status = ZwProtectVirtualMemory(NtCurrentProcess(),
+                                    &BaseAddress,
+                                    &ViewSize,
+                                    PAGE_READWRITE,
+                                    &OldProtection);
+    NT_ASSERT(NT_SUCCESS(Status));
+
     KiVdmSetVdmEFlags(EFLAGS_INTERRUPT_MASK);
+    Status = ZwProtectVirtualMemory(NtCurrentProcess(),
+                                    &BaseAddress,
+                                    &ViewSize,
+                                    PAGE_READONLY,
+                                    &OldProtection);
+    NT_ASSERT(NT_SUCCESS(Status));
+    }
 
     /* Skip instruction */
     TrapFrame->Eip += KiVdmGetInstructionSize(Flags);
@@ -889,7 +950,26 @@ Ke386CallBios(IN ULONG Int,
     VdmTib->Size = sizeof(VDM_TIB);
 
     /* Set a blank VDM state */
+    {
+    NTSTATUS Status;
+    ULONG OldProtection;
+    PVOID BaseAddress = 0;
+    ULONG ViewSize = PAGE_SIZE;
+    Status = ZwProtectVirtualMemory(NtCurrentProcess(),
+                                    &BaseAddress,
+                                    &ViewSize,
+                                    PAGE_READWRITE,
+                                    &OldProtection);
+    NT_ASSERT(NT_SUCCESS(Status));
+
     *VdmState = 0;
+    Status = ZwProtectVirtualMemory(NtCurrentProcess(),
+                                    &BaseAddress,
+                                    &ViewSize,
+                                    PAGE_READONLY,
+                                    &OldProtection);
+    NT_ASSERT(NT_SUCCESS(Status));
+    }
 
     /* Copy the context */
     RtlCopyMemory(&VdmTib->VdmContext, Context, ContextSize);
